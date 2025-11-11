@@ -16,9 +16,27 @@ st.set_page_config(
 # ==================== CONEXÃO GOOGLE SHEETS ====================
 def conectar_google_sheets():
     scope = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-    creds = Credentials.from_service_account_file('credenciais.json', scopes=scope)
-    client = gspread.authorize(creds)
-    return client.open_by_url('https://docs.google.com/spreadsheets/d/12Nn4aRW_-yVTB1itRrY0Ae1mhETVTXwZiRzezAzwRcQ/edit')
+    
+    try:
+        # Tenta usar as credenciais do Streamlit Secrets
+        if 'gcp_service_account' in st.secrets:
+            creds_dict = dict(st.secrets["gcp_service_account"])
+            creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
+            st.success("✅ Conectado via Secrets do Streamlit")
+        else:
+            # Fallback para desenvolvimento local
+            creds = Credentials.from_service_account_file('credenciais.json', scopes=scope)
+            st.success("✅ Conectado via arquivo local")
+    except Exception as e:
+        st.error(f"❌ Erro na autenticação: {e}")
+        return None
+    
+    try:
+        client = gspread.authorize(creds)
+        return client.open_by_url('https://docs.google.com/spreadsheets/d/12Nn4aRW_-yVTB1itRrY0Ae1mhETVTXwZiRzezAzwRcQ/edit')
+    except Exception as e:
+        st.error(f"❌ Erro ao acessar planilha: {e}")
+        return None
 
 # ==================== FUNÇÕES DE FILTRO ====================
 def aplicar_filtro_data(df, coluna_data, data_inicio, data_fim):
@@ -81,118 +99,193 @@ def criar_filtros_sidebar():
 
 # ==================== FUNÇÕES MELHORIAS ====================
 def carregar_melhorias():
-    planilha = conectar_google_sheets()
-    aba = planilha.worksheet("melhorias")
-    dados = aba.get_all_records()
-    return pd.DataFrame(dados)
+    try:
+        planilha = conectar_google_sheets()
+        if planilha is None:
+            st.error("❌ Não foi possível conectar ao Google Sheets")
+            return pd.DataFrame()
+            
+        aba = planilha.worksheet("melhorias")
+        dados = aba.get_all_records()
+        df = pd.DataFrame(dados)
+        
+        if not df.empty:
+            df['data_proposta'] = pd.to_datetime(df['data_proposta'], format='%d/%m/%Y', errors='coerce')
+        
+        return df
+    except Exception as e:
+        st.error(f"❌ Erro ao carregar melhorias: {e}")
+        return pd.DataFrame()
 
 def salvar_melhoria(dados):
-    planilha = conectar_google_sheets()
-    aba = planilha.worksheet("melhorias")
-    
-    nova_linha = [
-        dados['data_proposta'].strftime('%d/%m/%Y'),
-        dados['melhoria_id'],
-        dados['melhoria_proposta'],
-        dados['descricao_detalhada'],
-        dados['beneficio_esperado'],
-        "SIM" if dados['melhoria_aplicada'] else "NÃO",
-        dados['data_aplicacao'].strftime('%d/%m/%Y') if dados.get('data_aplicacao') else "",
-        dados['status'],
-        dados['impacto']
-    ]
-    
-    aba.append_row(nova_linha)
-    return True
+    try:
+        planilha = conectar_google_sheets()
+        if planilha is None:
+            st.error("❌ Não foi possível conectar ao Google Sheets")
+            return False
+            
+        aba = planilha.worksheet("melhorias")
+        
+        nova_linha = [
+            dados['data_proposta'].strftime('%d/%m/%Y'),
+            dados['melhoria_id'],
+            dados['melhoria_proposta'],
+            dados['descricao_detalhada'],
+            dados['beneficio_esperado'],
+            "SIM" if dados['melhoria_aplicada'] else "NÃO",
+            dados['data_aplicacao'].strftime('%d/%m/%Y') if dados.get('data_aplicacao') else "",
+            dados['status'],
+            dados['impacto']
+        ]
+        
+        aba.append_row(nova_linha)
+        st.success("✅ Melhoria salva com sucesso!")
+        return True
+    except Exception as e:
+        st.error(f"❌ Erro ao salvar melhoria: {e}")
+        return False
 
 # ==================== FUNÇÕES CERIMÔNIAS ====================
 def carregar_cerimonias():
-    planilha = conectar_google_sheets()
-    aba = planilha.worksheet("cerimonias_reunioes")
-    dados = aba.get_all_records()
-    df = pd.DataFrame(dados)
-    
-    if not df.empty:
-        df['data'] = pd.to_datetime(df['data'], format='%d/%m/%Y', errors='coerce')
-    
-    return df
+    try:
+        planilha = conectar_google_sheets()
+        if planilha is None:
+            st.error("❌ Não foi possível conectar ao Google Sheets")
+            return pd.DataFrame()
+            
+        aba = planilha.worksheet("cerimonias_reunioes")
+        dados = aba.get_all_records()
+        df = pd.DataFrame(dados)
+        
+        if not df.empty:
+            df['data'] = pd.to_datetime(df['data'], format='%d/%m/%Y', errors='coerce')
+        
+        return df
+    except Exception as e:
+        st.error(f"❌ Erro ao carregar cerimônias: {e}")
+        return pd.DataFrame()
 
 def salvar_cerimonia(dados):
-    planilha = conectar_google_sheets()
-    aba = planilha.worksheet("cerimonias_reunioes")
-    
-    nova_linha = [
-        dados['data'].strftime('%d/%m/%Y'),
-        dados['tipo'],
-        dados['nome'],
-        "SIM" if dados['presente'] else "NÃO",
-        dados['duracao_minutos'],
-        dados['participantes'],
-        dados['objetivo'],
-        dados['decisoes_acoes'],
-        dados['resultado']
-    ]
-    
-    aba.append_row(nova_linha)
-    return True
+    try:
+        planilha = conectar_google_sheets()
+        if planilha is None:
+            st.error("❌ Não foi possível conectar ao Google Sheets")
+            return False
+            
+        aba = planilha.worksheet("cerimonias_reunioes")
+        
+        nova_linha = [
+            dados['data'].strftime('%d/%m/%Y'),
+            dados['tipo'],
+            dados['nome'],
+            "SIM" if dados['presente'] else "NÃO",
+            dados['duracao_minutos'],
+            dados['participantes'],
+            dados['objetivo'],
+            dados['decisoes_acoes'],
+            dados['resultado']
+        ]
+        
+        aba.append_row(nova_linha)
+        st.success("✅ Cerimônia/Reunião salva com sucesso!")
+        return True
+    except Exception as e:
+        st.error(f"❌ Erro ao salvar cerimônia: {e}")
+        return False
 
 # ==================== FUNÇÕES DEMANDAS ESCRITAS ====================
 def carregar_demandas():
-    planilha = conectar_google_sheets()
-    aba = planilha.worksheet("demandas_escritas")
-    dados = aba.get_all_records()
-    df = pd.DataFrame(dados)
+    try:
+        planilha = conectar_google_sheets()
+        if planilha is None:
+            st.error("❌ Não foi possível conectar ao Google Sheets")
+            return pd.DataFrame()
+            
+        aba = planilha.worksheet("demandas_escritas")
+        dados = aba.get_all_records()
+        df = pd.DataFrame(dados)
+        
+        if not df.empty:
+            df['data_avaliacao'] = pd.to_datetime(df['data_avaliacao'], format='%d/%m/%Y', errors='coerce')
+        
+        return df
+    except Exception as e:
+        st.error(f"❌ Erro ao carregar demandas: {e}")
+        return pd.DataFrame()
     
-    if not df.empty:
-        df['data_avaliacao'] = pd.to_datetime(df['data_avaliacao'], format='%d/%m/%Y', errors='coerce')
-    
-    return df
+
 def salvar_demanda(dados):
-    planilha = conectar_google_sheets()
-    aba = planilha.worksheet("demandas_escritas")
-    
-    nova_linha = [
-        dados['data_avaliacao'].strftime('%d/%m/%Y'),
-        dados['periodo'],
-        dados['total_historias'],
-        dados['historias_prioridade_definida'],
-        dados['historias_criterio_aceite'],
-        dados['status'],
-        dados['observacoes']
-    ]
-    
-    aba.append_row(nova_linha)
-    return True
+    try:
+        planilha = conectar_google_sheets()
+        if planilha is None:
+            st.error("❌ Não foi possível conectar ao Google Sheets")
+            return False
+            
+        aba = planilha.worksheet("demandas_escritas")
+        
+        nova_linha = [
+            dados['data_avaliacao'].strftime('%d/%m/%Y'),
+            dados['periodo'],
+            dados['total_historias'],
+            dados['historias_prioridade_definida'],
+            dados['historias_criterio_aceite'],
+            dados['status'],
+            dados['observacoes']
+        ]
+        
+        aba.append_row(nova_linha)
+        st.success("✅ Avaliação de demandas salva com sucesso!")
+        return True
+    except Exception as e:
+        st.error(f"❌ Erro ao salvar demanda: {e}")
+        return False
 
 # ==================== FUNÇÕES DOCUMENTOS ENTREGUES ====================
 def carregar_documentos():
-    planilha = conectar_google_sheets()
-    aba = planilha.worksheet("documentos_criterios")
-    dados = aba.get_all_records()
-    df = pd.DataFrame(dados)
-    
-    if not df.empty:
-        df['data'] = pd.to_datetime(df['data'], format='%d/%m/%Y', errors='coerce')
-    
-    return df
+    try:
+        planilha = conectar_google_sheets()
+        if planilha is None:
+            st.error("❌ Não foi possível conectar ao Google Sheets")
+            return pd.DataFrame()
+            
+        aba = planilha.worksheet("documentos_criterios")
+        dados = aba.get_all_records()
+        df = pd.DataFrame(dados)
+        
+        if not df.empty:
+            df['data'] = pd.to_datetime(df['data'], format='%d/%m/%Y', errors='coerce')
+        
+        return df
+    except Exception as e:
+        st.error(f"❌ Erro ao carregar documentos: {e}")
+        return pd.DataFrame()
 
 def salvar_documento(dados):
-    planilha = conectar_google_sheets()
-    aba = planilha.worksheet("documentos_criterios")
-    
-    nova_linha = [
-        dados['data'].strftime('%d/%m/%Y'),
-        dados['tipo_documento'],
-        dados['nome_documento'],
-        dados['tempo_minutos'],
-        "SIM" if dados['critérios_aceite'] else "NÃO",
-        "SIM" if dados['template_padronizado'] else "NÃO",
-        dados['status'],
-        dados['observacoes']
-    ]
-    
-    aba.append_row(nova_linha)
-    return True
+    try:
+        planilha = conectar_google_sheets()
+        if planilha is None:
+            st.error("❌ Não foi possível conectar ao Google Sheets")
+            return False
+            
+        aba = planilha.worksheet("documentos_criterios")
+        
+        nova_linha = [
+            dados['data'].strftime('%d/%m/%Y'),
+            dados['tipo_documento'],
+            dados['nome_documento'],
+            dados['tempo_minutos'],
+            "SIM" if dados['critérios_aceite'] else "NÃO",
+            "SIM" if dados['template_padronizado'] else "NÃO",
+            dados['status'],
+            dados['observacoes']
+        ]
+        
+        aba.append_row(nova_linha)
+        st.success("✅ Documento salvo com sucesso!")
+        return True
+    except Exception as e:
+        st.error(f"❌ Erro ao salvar documento: {e}")
+        return False
 
 # ==================== INTERFACE MELHORIAS ====================
 def pagina_melhorias():
@@ -504,7 +597,7 @@ def pagina_demandas():
 def pagina_documentos():
     st.header("📋 Documentos Elaborados e Entregues")
 
-        # Adicionar filtros específicos
+    # Adicionar filtros específicos
     st.subheader("🔍 Filtros")
     col1, col2 = st.columns(2)
     
@@ -527,7 +620,7 @@ def pagina_documentos():
     with tab1:
         dados = carregar_documentos()
 
-         # Aplicar filtros
+        # Aplicar filtros
         if not dados.empty:
             data_inicio, data_fim = st.session_state.get('data_inicio'), st.session_state.get('data_fim')
             if data_inicio and data_fim:
