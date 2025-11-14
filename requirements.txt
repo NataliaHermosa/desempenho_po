@@ -6,3 +6,4 @@ xlsxwriter
 gspread
 google-auth
 oauth2client
+google-generativeai
