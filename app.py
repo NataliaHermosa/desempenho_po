@@ -349,7 +349,7 @@ def salvar_documento(dados):
 def pagina_melhorias(data_inicio, data_fim):
     st.header("💡 Sistema de Melhorias")
     
-    # Filtros específicos da página - AGORA EM EXPANDER
+    # Filtros específicos da página
     with st.expander("🔍 Filtros", expanded=False):
         col1, col2, col3 = st.columns(3)
         
@@ -357,7 +357,7 @@ def pagina_melhorias(data_inicio, data_fim):
             status_filter = st.multiselect(
                 "Status",
                 ["Proposta", "Em análise", "Aprovada", "Implementada"],
-                default=[],  # ← MUDOU: estava com valores, agora vazio
+                default=[],
                 key="filtro_status_melhorias"
             )
         
@@ -365,7 +365,7 @@ def pagina_melhorias(data_inicio, data_fim):
             impacto_filter = st.multiselect(
                 "Impacto",
                 ["Alto", "Médio", "Baixo"],
-                default=[],  # ← MUDOU: estava com valores, agora vazio
+                default=[],
                 key="filtro_impacto_melhorias"
             )
         
@@ -442,6 +442,79 @@ def pagina_melhorias(data_inicio, data_fim):
             else:
                 st.info("🔍 Nenhuma melhoria encontrada com os filtros aplicados")
                 st.write("💡 **Dica:** Tente ajustar os filtros ou limpar as seleções para ver todos os dados")
+
+    # 🆕 ABA "NOVA MELHORIA" - ESTAVA FALTANDO!
+    with tab2:
+        st.subheader("➕ Propor Nova Melhoria")
+        
+        with st.form(key="form_melhoria"):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                melhoria_id = st.text_input("ID da Melhoria", placeholder="MEL-001", key="melhoria_id")
+                data_proposta = st.date_input("Data da Proposta", datetime.now(), key="data_proposta_melhoria")
+                melhoria_proposta = st.text_input("Melhoria Proposta", placeholder="Descrição breve...", key="melhoria_proposta")
+                status = st.selectbox("Status", ["Proposta", "Em análise", "Aprovada", "Implementada"], key="status_melhoria")
+                impacto = st.selectbox("Impacto", ["Alto", "Médio", "Baixo"], key="impacto_melhoria")
+            
+            with col2:
+                descricao_detalhada = st.text_area("Descrição Detalhada", placeholder="Detalhes da melhoria proposta...", key="descricao_melhoria")
+                beneficio_esperado = st.text_area("Benefício Esperado", placeholder="Quais benefícios esta melhoria trará?", key="beneficio_melhoria")
+                melhoria_aplicada = st.checkbox("Melhoria Aplicada?", value=False, key="aplicada_melhoria")
+                
+                data_aplicacao = None
+                if melhoria_aplicada:
+                    data_aplicacao = st.date_input("Data de Aplicação", datetime.now(), key="data_aplicacao_melhoria")
+            
+            if st.form_submit_button("💾 Salvar Melhoria", key="btn_salvar_melhoria"):
+                if melhoria_id and melhoria_proposta:
+                    dados = {
+                        'melhoria_id': melhoria_id,
+                        'data_proposta': data_proposta,
+                        'melhoria_proposta': melhoria_proposta,
+                        'descricao_detalhada': descricao_detalhada,
+                        'beneficio_esperado': beneficio_esperado,
+                        'melhoria_aplicada': melhoria_aplicada,
+                        'data_aplicacao': data_aplicacao,
+                        'status': status,
+                        'impacto': impacto
+                    }
+                    if salvar_melhoria(dados):
+                        st.rerun()
+                else:
+                    st.error("❌ Preencha pelo menos o ID e a descrição da melhoria")
+
+    # 🆕 ABA "DADOS" - TAMBÉM ESTAVA FALTANDO!
+    with tab3:
+        st.subheader("📋 Dados Completos")
+        dados = carregar_melhorias()
+        
+        if not dados.empty:
+            # Aplicar filtros também na aba de dados
+            df_filtrado = dados.copy()
+            
+            if status_filter:
+                df_filtrado = df_filtrado[df_filtrado['status'].isin(status_filter)]
+            if impacto_filter:
+                df_filtrado = df_filtrado[df_filtrado['impacto'].isin(impacto_filter)]
+            if aplicada_filter != "Todos":
+                valor_filtro = "SIM" if aplicada_filter == "SIM" else "NÃO"
+                df_filtrado = df_filtrado[df_filtrado['melhoria_aplicada'] == valor_filtro]
+            if data_inicio and data_fim and 'data_proposta' in df_filtrado.columns:
+                df_filtrado = aplicar_filtro_data(df_filtrado, 'data_proposta', data_inicio, data_fim)
+            
+            st.dataframe(df_filtrado, use_container_width=True)
+            
+            # Botão para download
+            csv = df_filtrado.to_csv(index=False)
+            st.download_button(
+                label="📥 Download CSV",
+                data=csv,
+                file_name="melhorias.csv",
+                mime="text/csv"
+            )
+        else:
+            st.info("📝 Nenhum dado disponível")
 
 # ==================== PÁGINA CERIMÔNIAS ====================
 def pagina_cerimonias(data_inicio, data_fim):
