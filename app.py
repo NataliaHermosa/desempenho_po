@@ -102,17 +102,22 @@ def criar_filtros_sidebar():
     
     return data_inicio, data_fim
 
-# ==================== FUNÇÕES DE CARREGAMENTO ====================
+# ==================== FUNÇÕES DE CARREGAMENTO ATUALIZADAS ====================
 @st.cache_data(ttl=300)
 def carregar_melhorias():
     try:
+        # 🆕 USA CREDENCIAIS DO SECRETS
+        if 'gcp_service_account' not in st.secrets:
+            st.error("❌ Credenciais do Google Sheets não configuradas")
+            return pd.DataFrame()
+            
+        service_account_info = dict(st.secrets['gcp_service_account'])
         scope = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-        creds = Credentials.from_service_account_file('credenciais.json', scopes=scope)
+        creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
         client = gspread.authorize(creds)
+        
         spreadsheet = client.open_by_url('https://docs.google.com/spreadsheets/d/12Nn4aRW_-yVTB1itRrY0Ae1mhETVTXwZiRzezAzwRcQ/edit')
-        
         aba = spreadsheet.worksheet("melhorias")
-        
         dados = aba.get_all_records()
         df = pd.DataFrame(dados)
         
@@ -127,13 +132,18 @@ def carregar_melhorias():
 @st.cache_data(ttl=300)
 def carregar_cerimonias():
     try:
+        # 🆕 USA CREDENCIAIS DO SECRETS
+        if 'gcp_service_account' not in st.secrets:
+            st.error("❌ Credenciais do Google Sheets não configuradas")
+            return pd.DataFrame()
+            
+        service_account_info = dict(st.secrets['gcp_service_account'])
         scope = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-        creds = Credentials.from_service_account_file('credenciais.json', scopes=scope)
+        creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
         client = gspread.authorize(creds)
+        
         spreadsheet = client.open_by_url('https://docs.google.com/spreadsheets/d/12Nn4aRW_-yVTB1itRrY0Ae1mhETVTXwZiRzezAzwRcQ/edit')
-        
         aba = spreadsheet.worksheet("cerimonias_reunioes")
-        
         dados = aba.get_all_records()
         df = pd.DataFrame(dados)
         
@@ -148,13 +158,18 @@ def carregar_cerimonias():
 @st.cache_data(ttl=300)
 def carregar_demandas():
     try:
+        # 🆕 USA CREDENCIAIS DO SECRETS
+        if 'gcp_service_account' not in st.secrets:
+            st.error("❌ Credenciais do Google Sheets não configuradas")
+            return pd.DataFrame()
+            
+        service_account_info = dict(st.secrets['gcp_service_account'])
         scope = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-        creds = Credentials.from_service_account_file('credenciais.json', scopes=scope)
+        creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
         client = gspread.authorize(creds)
+        
         spreadsheet = client.open_by_url('https://docs.google.com/spreadsheets/d/12Nn4aRW_-yVTB1itRrY0Ae1mhETVTXwZiRzezAzwRcQ/edit')
-        
         aba = spreadsheet.worksheet("demandas_escritas")
-        
         dados = aba.get_all_records()
         df = pd.DataFrame(dados)
         
@@ -169,13 +184,18 @@ def carregar_demandas():
 @st.cache_data(ttl=300)
 def carregar_documentos():
     try:
+        # 🆕 USA CREDENCIAIS DO SECRETS
+        if 'gcp_service_account' not in st.secrets:
+            st.error("❌ Credenciais do Google Sheets não configuradas")
+            return pd.DataFrame()
+            
+        service_account_info = dict(st.secrets['gcp_service_account'])
         scope = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-        creds = Credentials.from_service_account_file('credenciais.json', scopes=scope)
+        creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
         client = gspread.authorize(creds)
+        
         spreadsheet = client.open_by_url('https://docs.google.com/spreadsheets/d/12Nn4aRW_-yVTB1itRrY0Ae1mhETVTXwZiRzezAzwRcQ/edit')
-        
         aba = spreadsheet.worksheet("documentos_criterios")
-        
         dados = aba.get_all_records()
         df = pd.DataFrame(dados)
         
@@ -808,7 +828,11 @@ def pagina_ia_assistente(data_inicio, data_fim):
         if pergunta.strip():
             with st.spinner("🤖 Analisando dados e gerando insights..."):
                 # Usar a chave do secrets
-                gemini_key = st.secrets.get("GEMINI_API_KEY", None)
+                try:
+                    gemini_key = st.secrets['gemini']['api_key']
+                except:
+                    gemini_key = None
+                    st.warning("⚠️ Chave Gemini não encontrada nos secrets")
                 
                 resposta = consultar_assistente_po(
                     pergunta=pergunta,
