@@ -207,11 +207,17 @@ def carregar_documentos():
         st.error(f"❌ Erro ao carregar documentos: {e}")
         return pd.DataFrame()
 
-# ==================== FUNÇÕES DE SALVAR CORRIGIDAS ====================
+# ==================== FUNÇÕES DE SALVAR ====================
 def salvar_melhoria(dados):
     try:
+        # 🆕 USA CREDENCIAIS DO SECRETS
+        if 'gcp_service_account' not in st.secrets:
+            st.error("❌ Credenciais do Google Sheets não configuradas")
+            return False
+            
+        service_account_info = dict(st.secrets['gcp_service_account'])
         scope = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-        creds = Credentials.from_service_account_file('credenciais.json', scopes=scope)
+        creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
         client = gspread.authorize(creds)
         spreadsheet = client.open_by_url('https://docs.google.com/spreadsheets/d/12Nn4aRW_-yVTB1itRrY0Ae1mhETVTXwZiRzezAzwRcQ/edit')
         
@@ -239,8 +245,14 @@ def salvar_melhoria(dados):
 
 def salvar_cerimonia(dados):
     try:
+        # 🆕 USA CREDENCIAIS DO SECRETS
+        if 'gcp_service_account' not in st.secrets:
+            st.error("❌ Credenciais do Google Sheets não configuradas")
+            return False
+            
+        service_account_info = dict(st.secrets['gcp_service_account'])
         scope = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-        creds = Credentials.from_service_account_file('credenciais.json', scopes=scope)
+        creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
         client = gspread.authorize(creds)
         spreadsheet = client.open_by_url('https://docs.google.com/spreadsheets/d/12Nn4aRW_-yVTB1itRrY0Ae1mhETVTXwZiRzezAzwRcQ/edit')
         
@@ -268,8 +280,14 @@ def salvar_cerimonia(dados):
 
 def salvar_demanda(dados):
     try:
+        # 🆕 USA CREDENCIAIS DO SECRETS
+        if 'gcp_service_account' not in st.secrets:
+            st.error("❌ Credenciais do Google Sheets não configuradas")
+            return False
+            
+        service_account_info = dict(st.secrets['gcp_service_account'])
         scope = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-        creds = Credentials.from_service_account_file('credenciais.json', scopes=scope)
+        creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
         client = gspread.authorize(creds)
         spreadsheet = client.open_by_url('https://docs.google.com/spreadsheets/d/12Nn4aRW_-yVTB1itRrY0Ae1mhETVTXwZiRzezAzwRcQ/edit')
         
@@ -295,8 +313,14 @@ def salvar_demanda(dados):
 
 def salvar_documento(dados):
     try:
+        # 🆕 USA CREDENCIAIS DO SECRETS
+        if 'gcp_service_account' not in st.secrets:
+            st.error("❌ Credenciais do Google Sheets não configuradas")
+            return False
+            
+        service_account_info = dict(st.secrets['gcp_service_account'])
         scope = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-        creds = Credentials.from_service_account_file('credenciais.json', scopes=scope)
+        creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
         client = gspread.authorize(creds)
         spreadsheet = client.open_by_url('https://docs.google.com/spreadsheets/d/12Nn4aRW_-yVTB1itRrY0Ae1mhETVTXwZiRzezAzwRcQ/edit')
         
