@@ -21,6 +21,3 @@ __pycache__/
 # Sistema
 .DS_Store
 Thumbs.db
-
-# 🔐 SUAS CREDENCIAIS SEGURAS
-GEMINI_API_KEY=AIzaSyBjHFpO1szcuSWCaBqufaOOqpHr3BbP8dU
