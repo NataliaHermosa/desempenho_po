@@ -4,20 +4,36 @@ from datetime import datetime
 import numpy as np
 import os
 import streamlit as st
+from dotenv import load_dotenv
 
+# Carrega as variáveis do arquivo .env
+load_dotenv()
 
 def consultar_assistente_po(pergunta, dados_disponiveis, tipo_modelo="Gemini Pro", gemini_key=None):
     """
     Função principal do assistente para análise de dados de Product Owner.
     """
     
-    # 🆕 MODIFICAÇÃO TEMPORÁRIA PARA TESTE - REMOVA DEPOIS
+    # 🆕 BUSCA SEGURA DA CHAVE - ORDEM DE PRIORIDADE:
+    # 1. Parâmetro da função (gemini_key)
+    # 2. Variável de ambiente (.env)
+    # 3. Secrets do Streamlit (se disponível)
+    
     if not gemini_key:
-        gemini_key = "AIzaSyCb5u1dCEdY7vGKw_7CifLrqZjbKJSLBWY"  # Sua chave direta
+        gemini_key = os.getenv('GEMINI_API_KEY')
+    
+    # Se ainda não encontrou e está no Streamlit, tenta secrets
+    if not gemini_key and hasattr(st, 'secrets'):
+        try:
+            gemini_key = st.secrets.get('GEMINI_API_KEY')
+        except:
+            pass
     
     # 1. VERIFICAÇÃO CRÍTICA DA CHAVE
     if not gemini_key:
-        print("❌ Chave Gemini não fornecida. Retornando fallback.")
+        error_msg = "❌ Chave da API Gemini não encontrada. Verifique seu arquivo .env ou configurações."
+        print(error_msg)
+        st.warning("Modo fallback ativado - usando análise local sem IA")
         return analise_local_po(pergunta, dados_disponiveis, is_fallback_mode=True)
     
     # 2. CONFIGURAÇÃO E EXECUÇÃO DA IA
@@ -30,8 +46,11 @@ def consultar_assistente_po(pergunta, dados_disponiveis, tipo_modelo="Gemini Pro
         
         print(f"🔍 Consultando Gemini para análise de PO: {pergunta}")
         
-        # 4. Escolher modelo
-        modelo_gemini = "gemini-2.5-pro" if "Pro" in tipo_modelo else "gemini-2.5-flash"
+        # 4. Escolher modelo - VERSÕES CORRETAS
+        if "Pro" in tipo_modelo:
+            modelo_gemini = "gemini-2.5-pro"
+        else:
+            modelo_gemini = "gemini-2.0-flash" 
 
         # 5. Criar relatório COMPLETO específico para PO
         relatorio_completo = criar_relatorio_po_completo(dados_disponiveis, pergunta)
@@ -78,15 +97,31 @@ def consultar_assistente_po(pergunta, dados_disponiveis, tipo_modelo="Gemini Pro
 
         RESPOSTA:
         """
-
-        # 8. Fazer consulta
+        
+        # ✅ AQUI ENTRA O PEDAÇO QUE VOCÊ PERGUNTOU:
+        # Resto da sua lógica de chamada à API...
         response = model.generate_content(prompt)
-        print(f"✅ Resposta completa recebida!")
         return response.text
-
+        
     except Exception as e:
-        print(f"❌ Erro na API do Gemini: {e}")
-        return analise_local_po(pergunta, dados_disponiveis)
+        error_msg = f"❌ Erro na consulta à IA: {str(e)}"
+        print(error_msg)
+        return analise_local_po(pergunta, dados_disponiveis, is_fallback_mode=True)
+
+# ✅ FORA DA FUNÇÃO PRINCIPAL - TESTE TEMPORÁRIO
+# Teste temporário - depois remova
+def testar_chave():
+    load_dotenv()
+    chave = os.getenv('GEMINI_API_KEY')
+    if chave:
+        print("✅ Chave carregada com sucesso do .env!")
+        return True
+    else:
+        print("❌ Chave NÃO encontrada no .env")
+        return False
+
+# Execute este teste uma vez
+testar_chave()
 
 def criar_relatorio_po_completo(dados_disponiveis, pergunta):
     """Cria relatório MEGA COMPLETO para análise de Product Ownership"""
@@ -546,3 +581,43 @@ def analise_local_po(pergunta, dados_disponiveis, is_fallback_mode=False):
         error_msg = f"❌ Erro na análise local: {str(e)}"
         print(error_msg)
         return error_msg
+    
+# TESTE DA API GEMINI - VERSÃO FINAL CORRIGIDA
+def testar_api_gemini():
+    """Testa se a API do Gemini está funcionando"""
+    print("\n🧪 INICIANDO TESTE DA API GEMINI...")
+    
+    try:
+        # Carrega a chave
+        load_dotenv()
+        chave = os.getenv('GEMINI_API_KEY')
+        
+        if not chave:
+            print("❌ Chave não encontrada")
+            return False
+        
+        # Configura a API
+        genai.configure(api_key=chave)
+        print("✅ API configurada")
+        
+        # 🆕 MODELOS CORRETOS BASEADO NA SUA LISTA:
+        modelo = "gemini-2.0-flash"  # Modelo estável e rápido
+        
+        print(f"🔧 Tentando modelo: {modelo}")
+        model = genai.GenerativeModel(modelo)
+        print("✅ Modelo carregado")
+        
+        # Faz uma pergunta simples
+        response = model.generate_content("Responda em UMA única palavra: OK")
+        print(f"✅ Resposta recebida: {response.text}")
+        
+        print("🎉 TESTE DA API BEM-SUCEDIDO!")
+        return True
+        
+    except Exception as e:
+        print(f"❌ ERRO NO TESTE DA API: {e}")
+        return False
+
+# Executa os testes
+if __name__ == "__main__":
+    testar_api_gemini()
